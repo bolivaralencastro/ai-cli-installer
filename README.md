@@ -1,0 +1,165 @@
+# Instalador de Ferramentas de IA
+
+Este repositório contém scripts para instalar globalmente ferramentas de inteligência artificial no seu sistema. Os scripts configuram automaticamente o ambiente necessário (Node.js e Python) e instalam as seguintes ferramentas:
+
+- **Google Gemini CLI**: Interface de linha de comando para o Google Gemini
+- **Qwen Code**: Assistente de IA para desenvolvimento de código
+- **OpenAI Codex CLI**: Interface de linha de comando para o OpenAI Codex
+- **Mistral Vibe**: Ferramenta de IA da Mistral
+
+## Instalação
+
+Execute o comando correspondente ao seu sistema operacional:
+
+### macOS / Linux / WSL
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.sh | bash
+```
+
+### Windows PowerShell
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.ps1 | iex
+```
+
+## O que este script faz
+
+O instalador executa as seguintes etapas:
+
+1. Detecta automaticamente o sistema operacional
+2. Verifica se Node.js e Python já estão instalados
+3. Instala Node.js e Python automaticamente se ausentes
+4. Instala globalmente as CLIs de IA listadas acima
+5. Exibe instruções para recarregar o ambiente
+
+## Opções Avançadas
+
+O script suporta várias opções para controle avançado:
+
+### Flags Disponíveis
+
+- `--help`: Mostra a ajuda com todas as opções
+- `--yes`: Responde automaticamente sim a todas as confirmações
+- `--only-clis`: Instala apenas as CLIs (ignora Node.js e Python)
+- `--skip-node`: Pula a instalação do Node.js
+- `--skip-python`: Pula a instalação do Python
+- `--dry-run`: Mostra o que seria feito sem executar nada
+- `--upgrade`: Atualiza CLIs de IA já instaladas
+- `--log`: Cria log da instalação em ~/.ai-cli-installer.log
+
+### Exemplos de Uso
+
+Instalação padrão com confirmação:
+```bash
+curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.sh | bash
+```
+
+Instalação automática sem confirmação:
+```bash
+curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.sh | bash -s -- --yes
+```
+
+Instalação apenas das CLIs (sem Node.js/Python):
+```bash
+curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.sh | bash -s -- --only-clis
+```
+
+Simular instalação (modo dry-run):
+```bash
+curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.sh | bash -s -- --dry-run
+```
+
+Atualizar CLIs existentes:
+```bash
+curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.sh | bash -s -- --upgrade
+```
+
+Registrar instalação em log:
+```bash
+curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.sh | bash -s -- --log
+```
+
+## Suporte a Múltiplas Distros Linux
+
+O script detecta automaticamente o gerenciador de pacotes do seu sistema e instala as dependências necessárias:
+
+- Debian/Ubuntu/WSL: `apt`
+- Fedora/RHEL: `dnf`
+- CentOS: `yum`
+- Arch: `pacman`
+- openSUSE: `zypper`
+
+Se o seu sistema não for suportado, você será orientado a instalar Node.js e Python manualmente.
+
+## Scripts de Desinstalação
+
+Para remover apenas as CLIs de IA instaladas (sem remover Node.js ou Python), utilize os scripts de desinstalação:
+
+### macOS / Linux / WSL
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/uninstall.sh | bash
+```
+
+### Windows PowerShell
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/uninstall.ps1 | iex
+```
+
+## Integridade e Segurança
+
+Para verificar a integridade do script de instalação, você pode comparar o checksum SHA-256:
+
+```bash
+shasum -a 256 scripts/install.sh
+```
+
+Compare o resultado com o valor armazenado em `scripts/install.sh.sha256`.
+
+Para uma verificação mais segura, você pode baixar o script localmente, validar o checksum e então executá-lo:
+
+```bash
+# Baixar os arquivos
+curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.sh -o install.sh
+curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.sh.sha256 -o install.sh.sha256
+
+# Verificar o checksum
+shasum -a 256 install.sh | grep -F -f install.sh.sha256
+
+# Se a verificação for bem-sucedida, executar o script
+bash install.sh
+```
+
+## Segurança
+
+Por segurança, recomendamos revisar os scripts antes de executá-los:
+
+- [Script de instalação para Unix](https://github.com/bolivaralencastro/ai-cli-installer/blob/main/scripts/install.sh)
+- [Script de instalação para Windows](https://github.com/bolivaralencastro/ai-cli-installer/blob/main/scripts/install.ps1)
+
+## Teste Rápido
+
+Após a instalação, você pode testar as ferramentas executando os seguintes comandos:
+
+```bash
+gemini
+qwen
+codex
+vibe
+```
+
+## Testes Locais (Modo Seguro)
+
+Para validar o fluxo do script sem alterar o sistema, utilize o modo `--dry-run` e a ajuda:
+
+```bash
+bash scripts/install.sh --help
+bash scripts/install.sh --dry-run
+bash scripts/install.sh --dry-run --only-clis
+bash scripts/install.sh --dry-run --skip-node
+bash scripts/install.sh --dry-run --skip-python
+bash scripts/install.sh --dry-run --upgrade
+bash scripts/uninstall.sh --help
+```
