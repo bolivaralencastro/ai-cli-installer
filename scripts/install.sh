@@ -353,9 +353,6 @@ run_quietly() {
     fi
 }
 
-    fi
-}
-
 check_npm_permissions() {
     # Se npm existe e não é do brew (ou estamos linux), avisar sobre sudo
     if command_exists npm; then
