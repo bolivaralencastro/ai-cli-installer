@@ -44,6 +44,8 @@ SKIP_PYTHON_FLAG=false
 DRY_RUN_FLAG=false
 UPGRADE_FLAG=false
 LOG_FLAG=false
+PYTHON_CMD=""
+VIBE_ATTEMPTED=false
 
 # Função para mostrar ajuda
 show_help() {
@@ -88,6 +90,26 @@ confirm_execution() {
 # Verificar se o comando existe
 command_exists() {
     command -v "$1" >/dev/null 2>&1
+}
+
+# Selecionar comando Python preferencial
+select_python_cmd() {
+    if command_exists python; then
+        PYTHON_CMD="python"
+    elif command_exists python3; then
+        PYTHON_CMD="python3"
+    else
+        PYTHON_CMD=""
+    fi
+}
+
+# Garantir que um comando Python esteja disponível
+require_python_cmd() {
+    select_python_cmd
+    if [[ -z "$PYTHON_CMD" ]]; then
+        print_error "Nenhum comando Python encontrado (python ou python3). Instale o Python para continuar."
+        exit 1
+    fi
 }
 
 # Detectar sistema operacional
@@ -355,22 +377,26 @@ install_ai_tools() {
 
     # Instalar/atualizar Mistral Vibe
     if command_exists vibe && [[ "$UPGRADE_FLAG" == "true" ]]; then
+        require_python_cmd
+        VIBE_ATTEMPTED=true
         print_info "Atualizando Mistral Vibe..."
         if [[ "$DRY_RUN_FLAG" != "true" ]]; then
-            python -m pip install --upgrade mistral-vibe || python3 -m pip install --upgrade mistral-vibe
+            "${PYTHON_CMD}" -m pip install --upgrade mistral-vibe
             log_message "Mistral Vibe atualizado"
         else
-            print_info "(dry-run) python -m pip install --upgrade mistral-vibe || python3 -m pip install --upgrade mistral-vibe"
+            print_info "(dry-run) ${PYTHON_CMD} -m pip install --upgrade mistral-vibe"
             log_message "(dry-run) Mistral Vibe atualizado"
         fi
         print_success "Mistral Vibe atualizado."
     elif ! command_exists vibe; then
+        require_python_cmd
+        VIBE_ATTEMPTED=true
         print_info "Instalando Mistral Vibe..."
         if [[ "$DRY_RUN_FLAG" != "true" ]]; then
-            python -m pip install mistral-vibe || python3 -m pip install mistral-vibe
+            "${PYTHON_CMD}" -m pip install mistral-vibe
             log_message "Mistral Vibe instalado"
         else
-            print_info "(dry-run) python -m pip install mistral-vibe || python3 -m pip install mistral-vibe"
+            print_info "(dry-run) ${PYTHON_CMD} -m pip install mistral-vibe"
             log_message "(dry-run) Mistral Vibe instalado"
         fi
         print_success "Mistral Vibe instalado."
@@ -408,14 +434,11 @@ diagnostic() {
         log_message "npm: não disponível"
     fi
 
-    if command_exists python3 || command_exists python; then
-        if command_exists python3; then
-            PYTHON_VERSION=$(python3 --version)
-        else
-            PYTHON_VERSION=$(python --version)
-        fi
-        print_info "Python: instalado ($PYTHON_VERSION)"
-        log_message "Python: instalado ($PYTHON_VERSION)"
+    select_python_cmd
+    if [[ -n "$PYTHON_CMD" ]]; then
+        PYTHON_VERSION=$("${PYTHON_CMD}" --version)
+        print_info "Python: instalado (${PYTHON_CMD}, $PYTHON_VERSION)"
+        log_message "Python: instalado (${PYTHON_CMD}, $PYTHON_VERSION)"
     else
         print_info "Python: ausente"
         log_message "Python: ausente"
@@ -649,6 +672,13 @@ main() {
     print_title "INSTALAÇÃO CONCLUÍDA"
     print_success "Todas as ferramentas de IA foram instaladas com sucesso!"
     print_info "Abra um novo terminal para garantir que o PATH esteja atualizado."
+    if [[ "$OS" == "macos" ]] && [[ "$DRY_RUN_FLAG" != "true" ]] && [[ "$VIBE_ATTEMPTED" == "true" ]] && ! command_exists vibe; then
+        SCRIPTS_DIR=$("${PYTHON_CMD}" -c 'import sysconfig; print(sysconfig.get_path("scripts"))' 2>/dev/null || true)
+        print_warning "Se o comando 'vibe' não for encontrado, o diretório de scripts do Python pode não estar no PATH. Reabra o terminal."
+        if [[ -n "$SCRIPTS_DIR" ]]; then
+            print_info "Dica: verifique se este caminho está no PATH: $SCRIPTS_DIR"
+        fi
+    fi
 }
 
 # Captura de erros
