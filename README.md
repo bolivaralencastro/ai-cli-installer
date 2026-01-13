@@ -14,7 +14,7 @@ Execute o comando correspondente ao seu sistema operacional:
 ### macOS / Linux / WSL
 
 ```bash
-curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.1/install.sh | bash
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.1/install.sh | bash -s -- --yes
 ```
 
 ### Windows PowerShell
@@ -50,12 +50,12 @@ O script suporta várias opções para controle avançado:
 
 ### Exemplos de Uso
 
-Instalação padrão com confirmação:
+Instalação padrão (sem interação):
 ```bash
-curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.1/install.sh | bash
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.1/install.sh | bash -s -- --yes
 ```
 
-Instalação automática sem confirmação:
+Instalação automática sem confirmação (equivalente ao padrão):
 ```bash
 curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.1/install.sh | bash -s -- --yes
 ```
@@ -79,6 +79,8 @@ Registrar instalação em log:
 ```bash
 curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.1/install.sh | bash -s -- --log
 ```
+
+Para confirmação interativa, baixe o script e execute localmente (o prompt não funciona via pipe).
 
 ## Suporte a Múltiplas Distros Linux
 
