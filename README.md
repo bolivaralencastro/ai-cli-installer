@@ -14,13 +14,13 @@ Execute o comando correspondente ao seu sistema operacional:
 ### macOS / Linux / WSL
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.sh | bash
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.0/install.sh | bash
 ```
 
 ### Windows PowerShell
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.ps1 | iex
+iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.0/install.ps1 | iex
 ```
 
 ## O que este script faz
@@ -52,32 +52,32 @@ O script suporta várias opções para controle avançado:
 
 Instalação padrão com confirmação:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.sh | bash
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.0/install.sh | bash
 ```
 
 Instalação automática sem confirmação:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.sh | bash -s -- --yes
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.0/install.sh | bash -s -- --yes
 ```
 
 Instalação apenas das CLIs (sem Node.js/Python):
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.sh | bash -s -- --only-clis
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.0/install.sh | bash -s -- --only-clis
 ```
 
 Simular instalação (modo dry-run):
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.sh | bash -s -- --dry-run
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.0/install.sh | bash -s -- --dry-run
 ```
 
 Atualizar CLIs existentes:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.sh | bash -s -- --upgrade
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.0/install.sh | bash -s -- --upgrade
 ```
 
 Registrar instalação em log:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.sh | bash -s -- --log
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.0/install.sh | bash -s -- --log
 ```
 
 ## Suporte a Múltiplas Distros Linux
@@ -99,14 +99,24 @@ Para remover apenas as CLIs de IA instaladas (sem remover Node.js ou Python), ut
 ### macOS / Linux / WSL
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/uninstall.sh | bash
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.0/uninstall.sh | bash
 ```
 
 ### Windows PowerShell
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/uninstall.ps1 | iex
+iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.0/uninstall.ps1 | iex
 ```
+
+## Segurança e Supply Chain
+
+O fluxo de 1 comando (`curl | bash` ou `iwr | iex`) é prático, mas exige confiança total na origem do script. Para reduzir riscos de supply chain, usamos links para releases específicos (imutáveis) em vez da branch `main`, o que evita mudanças inesperadas após a publicação.
+
+As CLIs são instaladas via `npm` e `pip` usando pacotes oficiais, porém essas instalações seguem os registries públicos (npm/PyPI). Em caso de comprometimento no registry, o risco existe. Por isso, recomendamos que usuários mais cautelosos baixem o script localmente e verifiquem o checksum antes de executar.
+
+## Modo seguro alternativo (recomendado)
+
+Uma opção mais segura é baixar o script, validar o checksum e executar localmente:
 
 ## Integridade e Segurança
 
@@ -121,9 +131,9 @@ Compare o resultado com o valor armazenado em `scripts/install.sh.sha256`.
 Para uma verificação mais segura, você pode baixar o script localmente, validar o checksum e então executá-lo:
 
 ```bash
-# Baixar os arquivos
-curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.sh -o install.sh
-curl -fsSL https://raw.githubusercontent.com/bolivaralencastro/ai-cli-installer/main/scripts/install.sh.sha256 -o install.sh.sha256
+# Baixar os arquivos do release
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.0/install.sh -o install.sh
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.0/install.sh.sha256 -o install.sh.sha256
 
 # Verificar o checksum
 shasum -a 256 install.sh | grep -F -f install.sh.sha256
@@ -136,8 +146,8 @@ bash install.sh
 
 Por segurança, recomendamos revisar os scripts antes de executá-los:
 
-- [Script de instalação para Unix](https://github.com/bolivaralencastro/ai-cli-installer/blob/main/scripts/install.sh)
-- [Script de instalação para Windows](https://github.com/bolivaralencastro/ai-cli-installer/blob/main/scripts/install.ps1)
+- [Script de instalação para Unix](https://github.com/bolivaralencastro/ai-cli-installer/blob/v2.0.0/scripts/install.sh)
+- [Script de instalação para Windows](https://github.com/bolivaralencastro/ai-cli-installer/blob/v2.0.0/scripts/install.ps1)
 
 ## Teste Rápido
 
