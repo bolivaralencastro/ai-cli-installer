@@ -14,13 +14,13 @@ Execute o comando correspondente ao seu sistema operacional:
 ### macOS / Linux / WSL
 
 ```bash
-curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.1/install.sh | bash -s -- --yes
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --yes
 ```
 
 ### Windows PowerShell
 
 ```powershell
-iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.1/install.ps1 | iex
+iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.ps1 | iex
 ```
 
 ## O que este script faz
@@ -52,32 +52,32 @@ O script suporta várias opções para controle avançado:
 
 Instalação padrão (sem interação):
 ```bash
-curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.1/install.sh | bash -s -- --yes
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --yes
 ```
 
 Instalação automática sem confirmação (equivalente ao padrão):
 ```bash
-curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.1/install.sh | bash -s -- --yes
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --yes
 ```
 
 Instalação apenas das CLIs (sem Node.js/Python):
 ```bash
-curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.1/install.sh | bash -s -- --only-clis
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --only-clis
 ```
 
 Simular instalação (modo dry-run):
 ```bash
-curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.1/install.sh | bash -s -- --dry-run
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --dry-run
 ```
 
 Atualizar CLIs existentes:
 ```bash
-curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.1/install.sh | bash -s -- --upgrade
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --upgrade
 ```
 
 Registrar instalação em log:
 ```bash
-curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.1/install.sh | bash -s -- --log
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --log
 ```
 
 Para confirmação interativa, baixe o script e execute localmente (o prompt não funciona via pipe).
@@ -101,13 +101,13 @@ Para remover apenas as CLIs de IA instaladas (sem remover Node.js ou Python), ut
 ### macOS / Linux / WSL
 
 ```bash
-curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.1/uninstall.sh | bash
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/uninstall.sh | bash
 ```
 
 ### Windows PowerShell
 
 ```powershell
-iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.1/uninstall.ps1 | iex
+iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/uninstall.ps1 | iex
 ```
 
 ## Segurança e Supply Chain
@@ -134,8 +134,8 @@ Para uma verificação mais segura, você pode baixar o script localmente, valid
 
 ```bash
 # Baixar os arquivos do release
-curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.1/install.sh -o install.sh
-curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v2.0.1/install.sh.sha256 -o install.sh.sha256
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh -o install.sh
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh.sha256 -o install.sh.sha256
 
 # Verificar o checksum
 shasum -a 256 install.sh | grep -F -f install.sh.sha256
@@ -148,8 +148,8 @@ bash install.sh
 
 Por segurança, recomendamos revisar os scripts antes de executá-los:
 
-- [Script de instalação para Unix](https://github.com/bolivaralencastro/ai-cli-installer/blob/v2.0.1/scripts/install.sh)
-- [Script de instalação para Windows](https://github.com/bolivaralencastro/ai-cli-installer/blob/v2.0.1/scripts/install.ps1)
+- [Script de instalação para Unix](https://github.com/bolivaralencastro/ai-cli-installer/blob/v3.0.0/scripts/install.sh)
+- [Script de instalação para Windows](https://github.com/bolivaralencastro/ai-cli-installer/blob/v3.0.0/scripts/install.ps1)
 
 ## Teste Rápido
 
