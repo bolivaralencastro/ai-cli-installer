@@ -11,30 +11,12 @@ log_message() {
     fi
 }
 
-# Função para imprimir mensagens em verde
-print_success() {
-    echo -e "\033[0;32m✓ $1\033[0m"
-}
-
-# Função para imprimir mensagens em amarelo
-print_warning() {
-    echo -e "\033[1;33m⚠ $1\033[0m"
-}
-
-# Função para imprimir mensagens em vermelho
-print_error() {
-    echo -e "\033[0;31m✗ $1\033[0m"
-}
-
-# Função para imprimir mensagens em azul
-print_info() {
-    echo -e "\033[0;34mℹ $1\033[0m"
-}
-
-# Função para imprimir mensagem de título
-print_title() {
-    echo -e "\n\033[1;36m### $1 ###\033[0m\n"
-}
+# Funções de formatação e cores
+print_success() { echo -e "\033[0;32m✓ $1\033[0m"; }
+print_warning() { echo -e "\033[1;33m⚠ $1\033[0m"; }
+print_error() { echo -e "\033[0;31m✗ $1\033[0m"; }
+print_info() { echo -e "\033[0;34mℹ $1\033[0m"; }
+print_title() { echo -e "\n\033[1;36m### $1 ###\033[0m"; }
 
 # Variáveis para flags
 YES_FLAG=false
@@ -44,8 +26,27 @@ SKIP_PYTHON_FLAG=false
 DRY_RUN_FLAG=false
 UPGRADE_FLAG=false
 LOG_FLAG=false
+
+# Variáveis de Estado
 PYTHON_CMD=""
-VIBE_ATTEMPTED=false
+CLI_STATUS=""
+CLI_VERSION_OUTPUT=""
+OS=""
+PACKAGE_MANAGER=""
+
+# Estado das Ferramentas
+GEMINI_STATE="missing"
+QWEN_STATE="missing"
+CODEX_STATE="missing"
+VIBE_STATE="missing"
+
+# Ações Planejadas
+NODE_ACTION="none"
+PYTHON_ACTION="none"
+GEMINI_ACTION="none"
+QWEN_ACTION="none"
+CODEX_ACTION="none"
+VIBE_ACTION="none"
 
 # Função para mostrar ajuda
 show_help() {
@@ -66,30 +67,39 @@ Opções:
 
 Exemplos:
     $0                      # Instala tudo com confirmação
-    $0 --yes                # Instala tudo sem confirmação
-    $0 --only-clis          # Instala apenas CLIs
-    $0 --skip-node          # Instala tudo exceto Node.js
-    $0 --dry-run            # Simula a instalação
     $0 --upgrade            # Atualiza CLIs existentes
-    $0 --log                # Registra instalação em log
 EOF
-}
-
-# Função para confirmar execução
-confirm_execution() {
-    if [[ "$YES_FLAG" == "true" ]]; then
-        return 0
-    fi
-
-    print_warning "Este script irá instalar ferramentas de IA globalmente no seu sistema."
-    read -p "Deseja continuar? (y/N): " -n 1 -r
-    echo
-    [[ $REPLY =~ ^[Yy]$ ]]
 }
 
 # Verificar se o comando existe
 command_exists() {
     command -v "$1" >/dev/null 2>&1
+}
+
+# Verificar status da CLI (instalada, ausente ou quebrada) e extrair versão
+check_cli_status() {
+    local cmd="$1"
+    local version_arg="${2:---version}"
+    CLI_STATUS="missing"
+    CLI_VERSION_OUTPUT=""
+
+    if command_exists "$cmd"; then
+        local output
+        # Redireciona stderr para stdout para capturar erro se houver
+        if output=$("$cmd" $version_arg 2>&1); then
+            CLI_STATUS="installed"
+            # Tenta extrair padrao X.Y.Z
+            if [[ "$output" =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+                CLI_VERSION_OUTPUT="v${BASH_REMATCH[1]}"
+            else
+                # Fallback, usa a primeira linha ou "unknown"
+                CLI_VERSION_OUTPUT=$(echo "$output" | head -n 1)
+            fi
+        else
+            CLI_STATUS="broken"
+            CLI_VERSION_OUTPUT="Erro na execução"
+        fi
+    fi
 }
 
 # Selecionar comando Python preferencial
@@ -103,21 +113,18 @@ select_python_cmd() {
     fi
 }
 
-# Garantir que um comando Python esteja disponível
 require_python_cmd() {
     select_python_cmd
     if [[ -z "$PYTHON_CMD" ]]; then
-        print_error "Nenhum comando Python encontrado (python ou python3). Instale o Python para continuar."
+        print_error "Nenhum comando Python encontrado."
         exit 1
     fi
 }
 
-# Detectar sistema operacional
 detect_os() {
     if [[ "$OSTYPE" == "darwin"* ]]; then
         OS="macos"
     elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        # Verificar se é WSL
         if grep -qi microsoft /proc/version; then
             OS="wsl"
         else
@@ -129,560 +136,435 @@ detect_os() {
     fi
 }
 
-# Detectar gerenciador de pacotes
-detect_package_manager() {
-    if command_exists apt-get; then
-        PACKAGE_MANAGER="apt"
-    elif command_exists dnf; then
-        PACKAGE_MANAGER="dnf"
-    elif command_exists yum; then
-        PACKAGE_MANAGER="yum"
-    elif command_exists pacman; then
-        PACKAGE_MANAGER="pacman"
-    elif command_exists zypper; then
-        PACKAGE_MANAGER="zypper"
-    else
-        PACKAGE_MANAGER="none"
-    fi
-}
-
-# Instalar Homebrew (macOS) ou verificar pacotes (Linux/WSL)
-setup_package_manager() {
-    case "$OS" in
-        macos)
-            if ! command_exists brew; then
-                print_info "Instalando Homebrew..."
-                /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-                # Avaliar o ambiente do Homebrew sem modificar arquivos de shell automaticamente
-                if [[ -f /opt/homebrew/bin/brew ]]; then
-                    eval "$(/opt/homebrew/bin/brew shellenv)"
-                elif [[ -f /usr/local/bin/brew ]]; then
-                    eval "$(/usr/local/bin/brew shellenv)"
-                fi
-            fi
-            ;;
-        linux|wsl)
-            detect_package_manager
-            if [[ "$PACKAGE_MANAGER" == "none" ]]; then
-                print_error "Nenhum gerenciador de pacotes suportado encontrado (apt, dnf, yum, pacman, zypper)."
-                print_error "Por favor, instale Node.js e Python manualmente."
-                exit 1
-            fi
-
-            print_info "Gerenciador de pacotes detectado: $PACKAGE_MANAGER"
-            case "$PACKAGE_MANAGER" in
-                apt)
-                    sudo apt-get update
-                    ;;
-                dnf)
-                    sudo dnf check-update || true
-                    ;;
-                yum)
-                    sudo yum check-update || true
-                    ;;
-                pacman)
-                    sudo pacman -Sy
-                    ;;
-                zypper)
-                    sudo zypper refresh
-                    ;;
-            esac
-            ;;
-    esac
-}
-
-# Instalar Node.js e npm
-install_nodejs() {
-    if command_exists node && command_exists npm; then
-        print_success "Node.js e npm já estão instalados."
-        return
-    fi
-
-    case "$OS" in
-        macos)
-            print_info "Instalando Node.js e npm via Homebrew..."
-            brew install node
-            ;;
-        linux|wsl)
-            case "$PACKAGE_MANAGER" in
-                apt)
-                    print_info "Instalando Node.js e npm via apt..."
-                    sudo apt-get install -y nodejs npm
-                    ;;
-                dnf)
-                    print_info "Instalando Node.js e npm via dnf..."
-                    sudo dnf install -y nodejs npm
-                    ;;
-                yum)
-                    print_info "Instalando Node.js e npm via yum..."
-                    sudo yum install -y nodejs npm
-                    ;;
-                pacman)
-                    print_info "Instalando Node.js e npm via pacman..."
-                    sudo pacman -S --noconfirm nodejs npm
-                    ;;
-                zypper)
-                    print_info "Instalando Node.js e npm via zypper..."
-                    sudo zypper install -y nodejs npm
-                    ;;
-            esac
-            ;;
-    esac
-
-    if command_exists node && command_exists npm; then
-        print_success "Node.js e npm instalados com sucesso."
-    else
-        print_error "Falha ao instalar Node.js e npm."
-        exit 1
-    fi
-}
-
-# Instalar Python e pip
-install_python() {
-    if command_exists python3 && command_exists pip3; then
-        print_success "Python 3 e pip já estão instalados."
-        return
-    fi
-
-    if command_exists python && command_exists pip; then
-        print_success "Python e pip já estão instalados."
-        return
-    fi
-
-    case "$OS" in
-        macos)
-            print_info "Instalando Python 3 via Homebrew..."
-            brew install python3
-            ;;
-        linux|wsl)
-            case "$PACKAGE_MANAGER" in
-                apt)
-                    print_info "Instalando Python 3 e pip via apt..."
-                    sudo apt-get install -y python3 python3-pip
-                    ;;
-                dnf)
-                    print_info "Instalando Python 3 e pip via dnf..."
-                    sudo dnf install -y python3 python3-pip
-                    ;;
-                yum)
-                    print_info "Instalando Python 3 e pip via yum..."
-                    sudo yum install -y python3 python3-pip
-                    ;;
-                pacman)
-                    print_info "Instalando Python 3 e pip via pacman..."
-                    sudo pacman -S --noconfirm python python-pip
-                    ;;
-                zypper)
-                    print_info "Instalando Python 3 e pip via zypper..."
-                    sudo zypper install -y python3 python3-pip
-                    ;;
-            esac
-            ;;
-    esac
-
-    if command_exists python3 && command_exists pip3; then
-        print_success "Python 3 e pip instalados com sucesso."
-    elif command_exists python && command_exists pip; then
-        print_success "Python e pip instalados com sucesso."
-    else
-        print_error "Falha ao instalar Python e pip."
-        exit 1
-    fi
-}
-
-# Instalar CLIs de IA
-install_ai_tools() {
-    log_message "Iniciando instalação/atualização de ferramentas de IA"
-
-    print_title "INSTALANDO FERRAMENTAS DE IA"
-
-    # Instalar/atualizar Google Gemini CLI
-    if command_exists gemini && [[ "$UPGRADE_FLAG" == "true" ]]; then
-        print_info "Atualizando Google Gemini CLI..."
-        if [[ "$DRY_RUN_FLAG" != "true" ]]; then
-            npm install -g @google/gemini-cli
-            log_message "Google Gemini CLI atualizado"
-        else
-            print_info "(dry-run) npm install -g @google/gemini-cli"
-            log_message "(dry-run) Google Gemini CLI atualizado"
-        fi
-        print_success "Google Gemini CLI atualizado."
-    elif ! command_exists gemini; then
-        print_info "Instalando Google Gemini CLI..."
-        if [[ "$DRY_RUN_FLAG" != "true" ]]; then
-            npm install -g @google/gemini-cli
-            log_message "Google Gemini CLI instalado"
-        else
-            print_info "(dry-run) npm install -g @google/gemini-cli"
-            log_message "(dry-run) Google Gemini CLI instalado"
-        fi
-        print_success "Google Gemini CLI instalado."
-    else
-        print_info "Google Gemini CLI já está instalado e --upgrade não foi especificado."
-        log_message "Google Gemini CLI já está instalado e --upgrade não foi especificado"
-    fi
-
-    # Instalar/atualizar Qwen Code
-    if command_exists qwen && [[ "$UPGRADE_FLAG" == "true" ]]; then
-        print_info "Atualizando Qwen Code..."
-        if [[ "$DRY_RUN_FLAG" != "true" ]]; then
-            npm install -g @qwen-code/qwen-code
-            log_message "Qwen Code atualizado"
-        else
-            print_info "(dry-run) npm install -g @qwen-code/qwen-code"
-            log_message "(dry-run) Qwen Code atualizado"
-        fi
-        print_success "Qwen Code atualizado."
-    elif ! command_exists qwen; then
-        print_info "Instalando Qwen Code..."
-        if [[ "$DRY_RUN_FLAG" != "true" ]]; then
-            npm install -g @qwen-code/qwen-code
-            log_message "Qwen Code instalado"
-        else
-            print_info "(dry-run) npm install -g @qwen-code/qwen-code"
-            log_message "(dry-run) Qwen Code instalado"
-        fi
-        print_success "Qwen Code instalado."
-    else
-        print_info "Qwen Code já está instalado e --upgrade não foi especificado."
-        log_message "Qwen Code já está instalado e --upgrade não foi especificado"
-    fi
-
-    # Instalar/atualizar OpenAI Codex CLI
-    if command_exists codex && [[ "$UPGRADE_FLAG" == "true" ]]; then
-        print_info "Atualizando OpenAI Codex CLI..."
-        if [[ "$DRY_RUN_FLAG" != "true" ]]; then
-            npm install -g @openai/codex
-            log_message "OpenAI Codex CLI atualizado"
-        else
-            print_info "(dry-run) npm install -g @openai/codex"
-            log_message "(dry-run) OpenAI Codex CLI atualizado"
-        fi
-        print_success "OpenAI Codex CLI atualizado."
-    elif ! command_exists codex; then
-        print_info "Instalando OpenAI Codex CLI..."
-        if [[ "$DRY_RUN_FLAG" != "true" ]]; then
-            npm install -g @openai/codex
-            log_message "OpenAI Codex CLI instalado"
-        else
-            print_info "(dry-run) npm install -g @openai/codex"
-            log_message "(dry-run) OpenAI Codex CLI instalado"
-        fi
-        print_success "OpenAI Codex CLI instalado."
-    else
-        print_info "OpenAI Codex CLI já está instalado e --upgrade não foi especificado."
-        log_message "OpenAI Codex CLI já está instalado e --upgrade não foi especificado"
-    fi
-
-    # Instalar/atualizar Mistral Vibe
-    if command_exists vibe && [[ "$UPGRADE_FLAG" == "true" ]]; then
-        require_python_cmd
-        VIBE_ATTEMPTED=true
-        print_info "Atualizando Mistral Vibe..."
-        if [[ "$DRY_RUN_FLAG" != "true" ]]; then
-            "${PYTHON_CMD}" -m pip install --upgrade mistral-vibe
-            log_message "Mistral Vibe atualizado"
-        else
-            print_info "(dry-run) ${PYTHON_CMD} -m pip install --upgrade mistral-vibe"
-            log_message "(dry-run) Mistral Vibe atualizado"
-        fi
-        print_success "Mistral Vibe atualizado."
-    elif ! command_exists vibe; then
-        require_python_cmd
-        VIBE_ATTEMPTED=true
-        print_info "Instalando Mistral Vibe..."
-        if [[ "$DRY_RUN_FLAG" != "true" ]]; then
-            "${PYTHON_CMD}" -m pip install mistral-vibe
-            log_message "Mistral Vibe instalado"
-        else
-            print_info "(dry-run) ${PYTHON_CMD} -m pip install mistral-vibe"
-            log_message "(dry-run) Mistral Vibe instalado"
-        fi
-        print_success "Mistral Vibe instalado."
-    else
-        print_info "Mistral Vibe já está instalado e --upgrade não foi especificado."
-        log_message "Mistral Vibe já está instalado e --upgrade não foi especificado"
-    fi
-
-    log_message "Instalação/atualização de ferramentas de IA concluída"
-}
-
-# Função para diagnóstico inicial
-diagnostic() {
-    log_message "Iniciando diagnóstico inicial"
-
-    print_title "DIAGNÓSTICO INICIAL"
-
-    print_info "Sistema operacional detectado: $OS"
-    log_message "Sistema operacional detectado: $OS"
-
+diagnostic_system() {
+    print_title "DIAGNÓSTICO DO SISTEMA"
+    echo "✔ OS: $OS"
+    
     if command_exists node; then
-        NODE_VERSION=$(node --version)
-        print_info "Node.js: instalado ($NODE_VERSION)"
-        log_message "Node.js: instalado ($NODE_VERSION)"
+        local nv=$(node --version)
+        echo "✔ Node.js: $nv (Detectado)"
+        NODE_STATE="installed"
     else
-        print_info "Node.js: ausente"
-        log_message "Node.js: ausente"
-    fi
-
-    if command_exists npm; then
-        print_info "npm: disponível"
-        log_message "npm: disponível"
-    else
-        print_info "npm: não disponível"
-        log_message "npm: não disponível"
+        echo "• Node.js: Ausente"
+        NODE_STATE="missing"
     fi
 
     select_python_cmd
     if [[ -n "$PYTHON_CMD" ]]; then
-        PYTHON_VERSION=$("${PYTHON_CMD}" --version)
-        print_info "Python: instalado (${PYTHON_CMD}, $PYTHON_VERSION)"
-        log_message "Python: instalado (${PYTHON_CMD}, $PYTHON_VERSION)"
+        local pv=$("${PYTHON_CMD}" --version 2>&1 | head -n 1)
+        echo "✔ Python: $pv (Detectado)"
+        PYTHON_STATE="installed"
     else
-        print_info "Python: ausente"
-        log_message "Python: ausente"
+        echo "• Python: Ausente"
+        PYTHON_STATE="missing"
     fi
 
-    if command_exists pip3 || command_exists pip; then
-        print_info "pip: disponível"
-        log_message "pip: disponível"
-    else
-        print_info "pip: não disponível"
-        log_message "pip: não disponível"
-    fi
+    echo ""
+    echo "### STATUS DAS FERRAMENTAS CI ###"
 
-    # Verificar CLIs existentes
-    if command_exists gemini; then
-        print_info "gemini: instalado"
-        log_message "gemini: instalado"
-        if [[ "$UPGRADE_FLAG" == "true" ]]; then
-            print_info "gemini: será atualizado (--upgrade)"
-            log_message "gemini: será atualizado (--upgrade)"
-        else
-            print_info "gemini: será pulado (use --upgrade para atualizar)"
-            log_message "gemini: será pulado (use --upgrade para atualizar)"
-        fi
-    else
-        print_info "gemini: ausente"
-        log_message "gemini: ausente"
-        print_info "gemini: será instalado"
-        log_message "gemini: será instalado"
-    fi
+    # Gemini
+    check_cli_status "gemini"
+    GEMINI_STATE="$CLI_STATUS"
+    GEMINI_VER="$CLI_VERSION_OUTPUT"
+    print_tool_status "gemini" "$GEMINI_STATE" "$GEMINI_VER"
 
-    if command_exists qwen; then
-        print_info "qwen: instalado"
-        log_message "qwen: instalado"
-        if [[ "$UPGRADE_FLAG" == "true" ]]; then
-            print_info "qwen: será atualizado (--upgrade)"
-            log_message "qwen: será atualizado (--upgrade)"
-        else
-            print_info "qwen: será pulado (use --upgrade para atualizar)"
-            log_message "qwen: será pulado (use --upgrade para atualizar)"
-        fi
-    else
-        print_info "qwen: ausente"
-        log_message "qwen: ausente"
-        print_info "qwen: será instalado"
-        log_message "qwen: será instalado"
-    fi
+    # Qwen
+    check_cli_status "qwen"
+    QWEN_STATE="$CLI_STATUS"
+    QWEN_VER="$CLI_VERSION_OUTPUT"
+    print_tool_status "qwen" "$QWEN_STATE" "$QWEN_VER"
 
-    if command_exists codex; then
-        print_info "codex: instalado"
-        log_message "codex: instalado"
-        if [[ "$UPGRADE_FLAG" == "true" ]]; then
-            print_info "codex: será atualizado (--upgrade)"
-            log_message "codex: será atualizado (--upgrade)"
-        else
-            print_info "codex: será pulado (use --upgrade para atualizar)"
-            log_message "codex: será pulado (use --upgrade para atualizar)"
-        fi
-    else
-        print_info "codex: ausente"
-        log_message "codex: ausente"
-        print_info "codex: será instalado"
-        log_message "codex: será instalado"
-    fi
+    # Codex
+    check_cli_status "codex"
+    CODEX_STATE="$CLI_STATUS"
+    CODEX_VER="$CLI_VERSION_OUTPUT"
+    print_tool_status "codex" "$CODEX_STATE" "$CODEX_VER"
 
-    if command_exists vibe; then
-        print_info "vibe: instalado"
-        log_message "vibe: instalado"
-        if [[ "$UPGRADE_FLAG" == "true" ]]; then
-            print_info "vibe: será atualizado (--upgrade)"
-            log_message "vibe: será atualizado (--upgrade)"
-        else
-            print_info "vibe: será pulado (use --upgrade para atualizar)"
-            log_message "vibe: será pulado (use --upgrade para atualizar)"
-        fi
-    else
-        print_info "vibe: ausente"
-        log_message "vibe: ausente"
-        print_info "vibe: será instalado"
-        log_message "vibe: será instalado"
-    fi
-
-    print_title "O QUE SERÁ INSTALADO"
-    log_message "Iniciando análise do que será instalado"
-
-    if [[ "$ONLY_CLIS_FLAG" == "true" ]]; then
-        print_info "Apenas CLIs de IA (modo --only-clis)"
-        log_message "Apenas CLIs de IA (modo --only-clis)"
-    else
-        if [[ "$SKIP_NODE_FLAG" == "false" ]] && ! command_exists node; then
-            print_info "Node.js (porque está ausente e --skip-node não foi usado)"
-            log_message "Node.js (porque está ausente e --skip-node não foi usado)"
-        elif [[ "$SKIP_NODE_FLAG" == "true" ]]; then
-            print_info "Node.js (será pulado por --skip-node)"
-            log_message "Node.js (será pulado por --skip-node)"
-        else
-            print_info "Node.js (já está instalado)"
-            log_message "Node.js (já está instalado)"
-        fi
-
-        if [[ "$SKIP_PYTHON_FLAG" == "false" ]] && ! (command_exists python3 || command_exists python); then
-            print_info "Python (porque está ausente e --skip-python não foi usado)"
-            log_message "Python (porque está ausente e --skip-python não foi usado)"
-        elif [[ "$SKIP_PYTHON_FLAG" == "true" ]]; then
-            print_info "Python (será pulado por --skip-python)"
-            log_message "Python (será pulado por --skip-python)"
-        else
-            print_info "Python (já está instalado)"
-            log_message "Python (já está instalado)"
-        fi
-    fi
-
-    if command_exists gemini && [[ "$UPGRADE_FLAG" != "true" ]]; then
-        print_info "Google Gemini CLI (já instalado, use --upgrade para atualizar)"
-        log_message "Google Gemini CLI (já instalado, use --upgrade para atualizar)"
-    else
-        print_info "Google Gemini CLI"
-        log_message "Google Gemini CLI"
-    fi
-
-    if command_exists qwen && [[ "$UPGRADE_FLAG" != "true" ]]; then
-        print_info "Qwen Code (já instalado, use --upgrade para atualizar)"
-        log_message "Qwen Code (já instalado, use --upgrade para atualizar)"
-    else
-        print_info "Qwen Code"
-        log_message "Qwen Code"
-    fi
-
-    if command_exists codex && [[ "$UPGRADE_FLAG" != "true" ]]; then
-        print_info "OpenAI Codex CLI (já instalado, use --upgrade para atualizar)"
-        log_message "OpenAI Codex CLI (já instalado, use --upgrade para atualizar)"
-    else
-        print_info "OpenAI Codex CLI"
-        log_message "OpenAI Codex CLI"
-    fi
-
-    if command_exists vibe && [[ "$UPGRADE_FLAG" != "true" ]]; then
-        print_info "Mistral Vibe (já instalado, use --upgrade para atualizar)"
-        log_message "Mistral Vibe (já instalado, use --upgrade para atualizar)"
-    else
-        print_info "Mistral Vibe"
-        log_message "Mistral Vibe"
-    fi
-
-    if [[ "$DRY_RUN_FLAG" == "true" ]]; then
-        print_warning "Modo --dry-run ativado. Nenhuma instalação será realizada."
-        log_message "Modo --dry-run ativado. Nenhuma instalação será realizada."
-        return
-    fi
-
-    log_message "Diagnóstico inicial concluído"
+    # Vibe
+    check_cli_status "vibe"
+    VIBE_STATE="$CLI_STATUS"
+    VIBE_VER="$CLI_VERSION_OUTPUT"
+    print_tool_status "vibe" "$VIBE_STATE" "$VIBE_VER"
 }
 
-# Função principal
-main() {
-    print_title "INSTALADOR DE FERRAMENTAS DE IA"
+print_tool_status() {
+    local name="$1"
+    local status="$2"
+    local ver="$3"
+    
+    case "$status" in
+        "installed")
+            echo -e "\033[0;32m✔ $name:\t $ver (Instalado)\033[0m"
+            ;;
+        "missing")
+            echo -e "• $name:\t Ausente"
+            ;;
+        "broken")
+            echo -e "\033[0;31m✖ $name:\t QUEBRADO (Binário existe, mas falha ao executar)\033[0m"
+            ;;
+    esac
+}
 
-    # Parse de argumentos
+plan_actions() {
+    print_title "PLANO DE EXECUÇÃO"
+    local count=0
+
+    # Node
+    if [[ "$ONLY_CLIS_FLAG" == "false" ]]; then
+        if [[ "$NODE_STATE" == "missing" ]] && [[ "$SKIP_NODE_FLAG" == "false" ]]; then
+            NODE_ACTION="install"
+            ((count++))
+        fi
+    fi
+
+    # Python
+    if [[ "$ONLY_CLIS_FLAG" == "false" ]]; then
+        if [[ "$PYTHON_STATE" == "missing" ]] && [[ "$SKIP_PYTHON_FLAG" == "false" ]]; then
+            PYTHON_ACTION="install"
+            ((count++))
+        fi
+    fi
+
+    # Tools Logic
+    # Se broken -> repair (reinstall)
+    # Se missing -> install
+    # Se installed -> upgrade (se flag) ou skip
+
+    # Gemini
+    if [[ "$GEMINI_STATE" == "missing" ]]; then
+        GEMINI_ACTION="install"
+        ((count++))
+    elif [[ "$GEMINI_STATE" == "broken" ]]; then
+        GEMINI_ACTION="repair"
+        ((count++))
+    elif [[ "$GEMINI_STATE" == "installed" ]] && [[ "$UPGRADE_FLAG" == "true" ]]; then
+        GEMINI_ACTION="update"
+        ((count++))
+    fi
+
+    # Qwen
+    if [[ "$QWEN_STATE" == "missing" ]]; then
+        QWEN_ACTION="install"
+        ((count++))
+    elif [[ "$QWEN_STATE" == "broken" ]]; then
+        QWEN_ACTION="repair"
+        ((count++))
+    elif [[ "$QWEN_STATE" == "installed" ]] && [[ "$UPGRADE_FLAG" == "true" ]]; then
+        QWEN_ACTION="update"
+        ((count++))
+    fi
+
+    # Codex
+    if [[ "$CODEX_STATE" == "missing" ]]; then
+        CODEX_ACTION="install"
+        ((count++))
+    elif [[ "$CODEX_STATE" == "broken" ]]; then
+        CODEX_ACTION="repair"
+        ((count++))
+    elif [[ "$CODEX_STATE" == "installed" ]] && [[ "$UPGRADE_FLAG" == "true" ]]; then
+        CODEX_ACTION="update"
+        ((count++))
+    fi
+
+    # Vibe
+    if [[ "$VIBE_STATE" == "missing" ]]; then
+        VIBE_ACTION="install"
+        ((count++))
+    elif [[ "$VIBE_STATE" == "broken" ]]; then
+        VIBE_ACTION="repair"
+        ((count++))
+    elif [[ "$VIBE_STATE" == "installed" ]] && [[ "$UPGRADE_FLAG" == "true" ]]; then
+        VIBE_ACTION="update"
+        ((count++))
+    fi
+
+    if [[ "$count" -eq 0 ]]; then
+        echo "Todas as ferramentas já estão instaladas."
+        echo "Nenhuma ação necessária."
+        if [[ "$UPGRADE_FLAG" != "true" ]]; then
+            echo ""
+            print_info "Dica: Para atualizar, veja a seção 'Atualizar' no README em:"
+            echo -e "\033[4;34mhttps://github.com/bolivaralencastro/ai-cli-installer#atualizar-clis-existentes\033[0m"
+        fi
+        exit 0
+    fi
+
+    echo "Serão realizadas as seguintes ações:"
+    [[ "$NODE_ACTION" == "install" ]] && echo "  + Instalar Node.js e npm"
+    [[ "$PYTHON_ACTION" == "install" ]] && echo "  + Instalar Python"
+    
+    print_action_plan "Google Gemini" "$GEMINI_ACTION"
+    print_action_plan "Qwen Code" "$QWEN_ACTION"
+    print_action_plan "OpenAI Codex" "$CODEX_ACTION"
+    print_action_plan "Mistral Vibe" "$VIBE_ACTION"
+
+    echo ""
+}
+
+print_action_plan() {
+    local name="$1"
+    local action="$2"
+    case "$action" in
+        "install") echo "  + Instalar $name" ;;
+        "update")  echo "  ↑ Atualizar $name" ;;
+        "repair")  echo "  ! REPARAR $name (Reinstalação forçada)" ;;
+        "none")    ;; # Não mostrar nada
+    esac
+}
+
+confirm_execution() {
+    if [[ "$YES_FLAG" == "true" ]] || [[ "$DRY_RUN_FLAG" == "true" ]]; then
+        return 0
+    fi
+    echo -n "[?] Deseja prosseguir? (S/n): "
+    read -r REPLY
+    echo ""
+    [[ "$REPLY" =~ ^[SsYy]?$ ]] # Default yes se enter
+}
+
+# Wrapper para executar comandos silenciosamente, mostrando erro se falhar
+run_quietly() {
+    local desc="$1"
+    local cmd="$2"
+    
+    echo -n "$desc... "
+    if [[ "$DRY_RUN_FLAG" == "true" ]]; then
+        echo "✔ (Simulado)"
+        log_message "(dry-run) $cmd"
+        return 0
+    fi
+
+    # Arquivo temporário para stderr
+    local err_file
+    err_file=$(mktemp)
+
+    if eval "$cmd" >/dev/null 2>"$err_file"; then
+        echo -e "\033[0;32m✔ Concluído\033[0m"
+        log_message "Sucesso: $cmd"
+        rm "$err_file"
+    else
+        echo -e "\033[0;31m✖ Falhou\033[0m"
+        log_message "Erro: $cmd"
+        cat "$err_file" >> ~/.ai-cli-installer.log
+        echo "--- Detalhes do erro ---"
+        tail -n 10 "$err_file"
+        rm "$err_file"
+        return 1
+    fi
+}
+
+    fi
+}
+
+check_npm_permissions() {
+    # Se npm existe e não é do brew (ou estamos linux), avisar sobre sudo
+    if command_exists npm; then
+        local npm_path=$(command -v npm)
+        if [[ "$npm_path" != *"/homebrew/"* ]] && [[ "$npm_path" != *"/Cellar/"* ]] && [[ "$OS" != "windows" ]]; then
+            # Teste rápido de escrita
+            if ! touch "$(npm root -g)/.test_write" 2>/dev/null; then
+                 print_warning "Node.js detectado em local protegido ($npm_path)."
+                 echo "Provavelmente será necessário senha de administrador (sudo) para instalar pacotes globais."
+                 echo "Caso falhe, tente rodar o script com 'sudo'."
+                 # Apenas um aviso, deixamos o npm falhar ou pedir senha se configurado
+            else
+                rm "$(npm root -g)/.test_write"
+            fi
+        fi
+    fi
+}
+
+execute_all() {
+    print_title "EXECUTANDO"
+
+    # Preparar package manager para node/python se necessário
+    if [[ "$NODE_ACTION" == "install" ]] || [[ "$PYTHON_ACTION" == "install" ]]; then
+        # Detect PM
+        detect_package_manager_logic
+        setup_package_manager
+    fi
+
+    if [[ "$NODE_ACTION" == "install" ]]; then
+        install_nodejs
+    fi
+    if [[ "$PYTHON_ACTION" == "install" ]]; then
+        install_python
+    fi
+
+    # Ferramentas IA
+    check_npm_permissions
+    
+    if [[ "$GEMINI_ACTION" != "none" ]]; then
+        run_quietly "Instalando/Atualizando Google Gemini" "npm install -g @google/gemini-cli"
+    fi
+
+    if [[ "$QWEN_ACTION" != "none" ]]; then
+        run_quietly "Instalando/Atualizando Qwen Code" "npm install -g @qwen-code/qwen-code"
+    fi
+
+    if [[ "$CODEX_ACTION" != "none" ]]; then
+        run_quietly "Instalando/Atualizando OpenAI Codex" "npm install -g @openai/codex"
+    fi
+
+    if [[ "$VIBE_ACTION" != "none" ]]; then
+        require_python_cmd
+        local pip_cmd="${PYTHON_CMD} -m pip install"
+        [[ "$VIBE_ACTION" == "update" ]] && pip_cmd="$pip_cmd --upgrade"
+        pip_cmd="$pip_cmd mistral-vibe"
+        run_quietly "Instalando/Atualizando Mistral Vibe" "$pip_cmd"
+    fi
+}
+
+# Funções auxiliares (copy-paste da logica antiga mas adaptada)
+detect_package_manager_logic() {
+    if command_exists apt-get; then PACKAGE_MANAGER="apt"
+    elif command_exists dnf; then PACKAGE_MANAGER="dnf"
+    elif command_exists yum; then PACKAGE_MANAGER="yum"
+    elif command_exists pacman; then PACKAGE_MANAGER="pacman"
+    elif command_exists zypper; then PACKAGE_MANAGER="zypper"
+    else PACKAGE_MANAGER="none"; fi
+}
+
+setup_package_manager() {
+    case "$OS" in
+        macos)
+            if ! command_exists brew; then
+                run_quietly "Instalando Homebrew" '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+                if [[ -f /opt/homebrew/bin/brew ]]; then eval "$(/opt/homebrew/bin/brew shellenv)"; fi
+                if [[ -f /usr/local/bin/brew ]]; then eval "$(/usr/local/bin/brew shellenv)"; fi
+            fi
+            ;;
+        linux|wsl)
+            if [[ "$PACKAGE_MANAGER" == "none" ]]; then
+                print_error "Gerenciador de pacotes não suportado."
+                exit 1
+            fi
+            # Updates
+            case "$PACKAGE_MANAGER" in
+                apt) run_quietly "Atualizando apt" "sudo apt-get update" ;;
+                pacman) run_quietly "Atualizando pacman" "sudo pacman -Sy" ;;
+                # outros geralmente nao precisam de refresh explicito aqui ou ja incluso
+            esac
+            ;;
+    esac
+}
+
+install_nodejs() {
+    case "$OS" in
+        macos)
+            # Versão check
+            if command_exists sw_vers; then
+                local mv=$(sw_vers -productVersion | cut -d. -f1)
+                if [[ "$mv" -lt 13 ]]; then
+                    print_warning "ATENÇÃO: macOS antigo detectado."
+                    echo "O Homebrew não fornece mais binários pré-compilados para sua versão."
+                    echo "A instalação demoraria muito e poderia falhar."
+                    echo
+                    echo "Por favor, instale o Node.js manualmente em: https://nodejs.org/"
+                    echo "Depois, execute este script novamente com a flag --skip-node"
+                    exit 1
+                fi
+            fi
+            run_quietly "Instalando Node.js (brew)" "brew install node"
+            ;;
+        linux|wsl)
+            case "$PACKAGE_MANAGER" in
+                apt) run_quietly "Instalando Node.js (apt)" "sudo apt-get install -y nodejs npm" ;;
+                dnf) run_quietly "Instalando Node.js (dnf)" "sudo dnf install -y nodejs npm" ;;
+                yum) run_quietly "Instalando Node.js (yum)" "sudo yum install -y nodejs npm" ;;
+                pacman) run_quietly "Instalando Node.js (pacman)" "sudo pacman -S --noconfirm nodejs npm" ;;
+                zypper) run_quietly "Instalando Node.js (zypper)" "sudo zypper install -y nodejs npm" ;;
+            esac
+            ;;
+    esac
+}
+
+install_python() {
+    case "$OS" in
+        macos) run_quietly "Instalando Python (brew)" "brew install python3" ;;
+        linux|wsl)
+            case "$PACKAGE_MANAGER" in
+                apt) run_quietly "Instalando Python (apt)" "sudo apt-get install -y python3 python3-pip" ;;
+                dnf) run_quietly "Instalando Python (dnf)" "sudo dnf install -y python3 python3-pip" ;;
+                yum) run_quietly "Instalando Python (yum)" "sudo yum install -y python3 python3-pip" ;;
+                pacman) run_quietly "Instalando Python (pacman)" "sudo pacman -S --noconfirm python python-pip" ;;
+                zypper) run_quietly "Instalando Python (zypper)" "sudo zypper install -y python3 python3-pip" ;;
+            esac
+            ;;
+    esac
+}
+
+final_validation() {
+    print_title "VALIDAÇÃO FINAL"
+    local all_ok=true
+
+    # Re-check status silently
+    check_cli_status "gemini"
+    local g_st="$CLI_STATUS"
+    local g_v="$CLI_VERSION_OUTPUT"
+    
+    check_cli_status "qwen"
+    local q_st="$CLI_STATUS"
+    local q_v="$CLI_VERSION_OUTPUT"
+
+    check_cli_status "codex"
+    local c_st="$CLI_STATUS"
+    local c_v="$CLI_VERSION_OUTPUT"
+
+    check_cli_status "vibe"
+    local v_st="$CLI_STATUS"
+    local v_v="$CLI_VERSION_OUTPUT"
+
+    if [[ "$g_st" == "installed" ]] && [[ "$q_st" == "installed" ]] && [[ "$c_st" == "installed" ]] && [[ "$v_st" == "installed" ]]; then
+        echo -e "\033[0;32m✔ Todas as ferramentas estão operacionais:\033[0m"
+        echo "  - gemini ($g_v)"
+        echo "  - qwen ($q_v)"
+        echo "  - codex ($c_v)"
+        echo "  - vibe ($v_v)"
+    else
+        echo -e "\033[0;33m⚠ Algumas ferramentas podem ter falhado:\033[0m"
+        [[ "$g_st" != "installed" ]] && echo "  - gemini: $g_st"
+        [[ "$q_st" != "installed" ]] && echo "  - qwen: $q_st"
+        [[ "$c_st" != "installed" ]] && echo "  - codex: $c_st"
+        [[ "$v_st" != "installed" ]] && echo "  - vibe: $v_st"
+    fi
+
+    echo ""
+    if [[ "$UPGRADE_FLAG" != "true" ]]; then
+        print_info "Para atualizar as ferramentas no futuro, consulte as instruções em:"
+        echo -e "\033[4;34mhttps://github.com/bolivaralencastro/ai-cli-installer#atualizar-clis-existentes\033[0m"
+    fi
+}
+
+main() {
+    # Parse Args
     while [[ $# -gt 0 ]]; do
         case $1 in
-            --help)
-                show_help
-                exit 0
-                ;;
-            --yes)
-                YES_FLAG=true
-                shift
-                ;;
-            --only-clis)
-                ONLY_CLIS_FLAG=true
-                SKIP_NODE_FLAG=true
-                SKIP_PYTHON_FLAG=true
-                shift
-                ;;
-            --skip-node)
-                SKIP_NODE_FLAG=true
-                shift
-                ;;
-            --skip-python)
-                SKIP_PYTHON_FLAG=true
-                shift
-                ;;
-            --dry-run)
-                DRY_RUN_FLAG=true
-                shift
-                ;;
-            --upgrade)
-                UPGRADE_FLAG=true
-                shift
-                ;;
-            --log)
-                LOG_FLAG=true
-                shift
-                ;;
-            *)
-                print_error "Argumento desconhecido: $1"
-                exit 1
-                ;;
+            --help) show_help; exit 0 ;;
+            --yes) YES_FLAG=true; shift ;;
+            --only-clis) ONLY_CLIS_FLAG=true; SKIP_NODE_FLAG=true; SKIP_PYTHON_FLAG=true; shift ;;
+            --skip-node) SKIP_NODE_FLAG=true; shift ;;
+            --skip-python) SKIP_PYTHON_FLAG=true; shift ;;
+            --dry-run) DRY_RUN_FLAG=true; shift ;;
+            --upgrade) UPGRADE_FLAG=true; shift ;;
+            --log) LOG_FLAG=true; shift ;;
+            *) print_error "Argumento desconhecido: $1"; exit 1 ;;
         esac
     done
 
     detect_os
-    diagnostic
-
-    if [[ "$DRY_RUN_FLAG" == "true" ]]; then
-        print_info "Encerrando (modo --dry-run)."
-        exit 0
-    fi
-
+    diagnostic_system
+    plan_actions
+    
     if ! confirm_execution; then
-        print_warning "Operação cancelada pelo usuário."
+        print_warning "Operação cancelada."
         exit 0
     fi
-
-    setup_package_manager
-
-    if [[ "$SKIP_NODE_FLAG" == "false" ]]; then
-        install_nodejs
-    else
-        print_info "Pulando instalação do Node.js (--skip-node)."
-    fi
-
-    if [[ "$SKIP_PYTHON_FLAG" == "false" ]]; then
-        install_python
-    else
-        print_info "Pulando instalação do Python (--skip-python)."
-    fi
-
-    install_ai_tools
-
-    print_title "INSTALAÇÃO CONCLUÍDA"
-    print_success "Todas as ferramentas de IA foram instaladas com sucesso!"
-    print_info "Abra um novo terminal para garantir que o PATH esteja atualizado."
-    if [[ "$OS" == "macos" ]] && [[ "$DRY_RUN_FLAG" != "true" ]] && [[ "$VIBE_ATTEMPTED" == "true" ]] && ! command_exists vibe; then
-        SCRIPTS_DIR=$("${PYTHON_CMD}" -c 'import sysconfig; print(sysconfig.get_path("scripts"))' 2>/dev/null || true)
-        print_warning "Se o comando 'vibe' não for encontrado, o diretório de scripts do Python pode não estar no PATH. Reabra o terminal."
-        if [[ -n "$SCRIPTS_DIR" ]]; then
-            print_info "Dica: verifique se este caminho está no PATH: $SCRIPTS_DIR"
-        fi
-    fi
+    
+    execute_all
+    final_validation
 }
 
-# Captura de erros
-trap 'print_error "Erro na linha $LINENO. Comando: $BASH_COMMAND"; exit 1' ERR
+trap 'print_error "Erro inesperado na linha $LINENO. Verifique logs."; npm cache clean --force 2>/dev/null || true; exit 1' ERR
 
-# Executar função principal com todos os argumentos
 main "$@"

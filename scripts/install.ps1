@@ -9,50 +9,46 @@ param(
     [switch]$Help = $false
 )
 
+# Configurar encoding para UTF-8 para exibir emojis corretamente
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
 # Mostrar ajuda se a flag --help for usada
 if ($Help) {
-    @"
-Instalador de ferramentas de IA
-
-Uso: powershell -ExecutionPolicy Bypass -File $PSCommandPath [OPÇÕES]
-
-Opções:
-    -Help          Mostra esta mensagem de ajuda
-    -Yes           Responde sim automaticamente a todas as confirmações
-    -OnlyClis      Instala apenas as CLIs (não instala Node.js/Python)
-    -SkipNode      Pula a instalação do Node.js
-    -SkipPython    Pula a instalação do Python
-    -DryRun        Mostra o que seria feito sem executar nada
-
-Exemplos:
-    .\$($MyInvocation.MyCommand.Name)                    # Instala tudo com confirmação
-    .\$($MyInvocation.MyCommand.Name) -Yes              # Instala tudo sem confirmação
-    .\$($MyInvocation.MyCommand.Name) -OnlyClis         # Instala apenas CLIs
-    .\$($MyInvocation.MyCommand.Name) -SkipNode         # Instala tudo exceto Node.js
-    .\$($MyInvocation.MyCommand.Name) -DryRun           # Simula a instalação
-"@
+    Write-Host "Instalador de ferramentas de IA"
+    Write-Host ""
+    Write-Host "Uso: powershell -ExecutionPolicy Bypass -File install.ps1 [OPCOES]"
+    Write-Host ""
+    Write-Host "Opcoes:"
+    Write-Host "    -Help          Mostra esta mensagem de ajuda"
+    Write-Host "    -Yes           Responde sim automaticamente"
+    Write-Host "    -OnlyClis      Instala apenas as CLIs"
+    Write-Host "    -DryRun        Modo de teste"
     exit 0
 }
 
 # Funções para impressão de mensagens
 function Print-Success {
     param([string]$Message)
-    Write-Host "✓ $Message" -ForegroundColor Green
+    $icon = [char]0x2713
+    Write-Host "$icon $Message" -ForegroundColor Green
 }
 
 function Print-Warning {
     param([string]$Message)
-    Write-Host "⚠ $Message" -ForegroundColor Yellow
+    $icon = [char]0x26A0
+    Write-Host "$icon $Message" -ForegroundColor Yellow
 }
 
 function Print-Error {
     param([string]$Message)
-    Write-Host "✗ $Message" -ForegroundColor Red
+    $icon = [char]0x2717
+    Write-Host "$icon $Message" -ForegroundColor Red
 }
 
 function Print-Info {
     param([string]$Message)
-    Write-Host "ℹ $Message" -ForegroundColor Blue
+    $icon = [char]0x2139
+    Write-Host "$icon $Message" -ForegroundColor Blue
 }
 
 function Print-Title {
@@ -67,14 +63,14 @@ function Confirm-Execution {
         return $true
     }
 
-    Print-Warning "Este script irá instalar ferramentas de IA globalmente no seu sistema."
+    Print-Warning "Este script ira instalar ferramentas de IA globalmente no seu sistema."
     $confirmation = Read-Host "Deseja continuar? (S/n)"
     return ($confirmation -eq 'S' -or $confirmation -eq 's')
 }
 
 # Função para diagnóstico inicial
 function Show-Diagnostic {
-    Print-Title "DIAGNÓSTICO INICIAL"
+    Print-Title "DIAGNOSTICO INICIAL"
 
     $osInfo = [System.Environment]::OSVersion
     Print-Info "Sistema operacional detectado: Windows"
@@ -82,47 +78,56 @@ function Show-Diagnostic {
     if (Command-Exists "node") {
         $nodeVersion = $(node --version)
         Print-Info "Node.js: instalado ($nodeVersion)"
-    } else {
+    }
+    else {
         Print-Info "Node.js: ausente"
     }
 
     if (Command-Exists "npm") {
-        Print-Info "npm: disponível"
-    } else {
-        Print-Info "npm: não disponível"
+        Print-Info "npm: disponivel"
+    }
+    else {
+        Print-Info "npm: nao disponivel"
     }
 
     if (Command-Exists "python") {
         $pythonVersion = $(python --version)
         Print-Info "Python: instalado ($pythonVersion)"
-    } else {
+    }
+    else {
         Print-Info "Python: ausente"
     }
 
     if (Command-Exists "pip") {
-        Print-Info "pip: disponível"
-    } else {
-        Print-Info "pip: não disponível"
+        Print-Info "pip: disponivel"
+    }
+    else {
+        Print-Info "pip: nao disponivel"
     }
 
-    Print-Title "O QUE SERÁ INSTALADO"
+    Print-Title "O QUE SERA INSTALADO"
     if ($OnlyClis) {
         Print-Info "Apenas CLIs de IA (modo -OnlyClis)"
-    } else {
+    }
+    else {
         if (!$SkipNode -and !(Command-Exists "node")) {
-            Print-Info "Node.js (porque está ausente e -SkipNode não foi usado)"
-        } elseif ($SkipNode) {
-            Print-Info "Node.js (será pulado por -SkipNode)"
-        } else {
-            Print-Info "Node.js (já está instalado)"
+            Print-Info "Node.js (porque esta ausente e -SkipNode nao foi usado)"
+        }
+        elseif ($SkipNode) {
+            Print-Info "Node.js (sera pulado por -SkipNode)"
+        }
+        else {
+            Print-Info "Node.js (ja esta instalado)"
         }
 
         if (!$SkipPython -and !(Command-Exists "python")) {
-            Print-Info "Python (porque está ausente e -SkipPython não foi usado)"
-        } elseif ($SkipPython) {
-            Print-Info "Python (será pulado por -SkipPython)"
-        } else {
-            Print-Info "Python (já está instalado)"
+            Print-Info "Python (porque esta ausente e -SkipPython nao foi usado)"
+        }
+        elseif ($SkipPython) {
+            Print-Info "Python (sera pulado por -SkipPython)"
+        }
+        else {
+            Print-Info "Python (ja esta instalado)"
         }
     }
 
@@ -132,7 +137,7 @@ function Show-Diagnostic {
     Print-Info "Mistral Vibe"
 
     if ($DryRun) {
-        Print-Warning "Modo -DryRun ativado. Nenhuma instalação será realizada."
+        Print-Warning "Modo -DryRun ativado. Nenhuma instalacao sera realizada."
     }
 }
 
@@ -142,7 +147,8 @@ function Command-Exists {
     try {
         Get-Command $Command -ErrorAction Stop
         return $true
-    } catch {
+    }
+    catch {
         return $false
     }
 }
@@ -151,15 +157,18 @@ function Command-Exists {
 function Install-Prerequisites {
     # Verificar se Node.js já está instalado
     if ($SkipNode) {
-        Print-Info "Pulando instalação do Node.js (-SkipNode)."
-    } elseif (Command-Exists "node") {
-        Print-Success "Node.js já está instalado."
-    } else {
+        Print-Info "Pulando instalacao do Node.js (-SkipNode)."
+    }
+    elseif (Command-Exists "node") {
+        Print-Success "Node.js ja esta instalado."
+    }
+    else {
         Print-Info "Instalando Node.js via winget..."
         winget install OpenJS.NodeJS.LTS -h
         if (Command-Exists "node") {
             Print-Success "Node.js instalado com sucesso."
-        } else {
+        }
+        else {
             Print-Error "Falha ao instalar Node.js."
             exit 1
         }
@@ -167,15 +176,18 @@ function Install-Prerequisites {
 
     # Verificar se Python já está instalado
     if ($SkipPython) {
-        Print-Info "Pulando instalação do Python (-SkipPython)."
-    } elseif (Command-Exists "python") {
-        Print-Success "Python já está instalado."
-    } else {
+        Print-Info "Pulando instalacao do Python (-SkipPython)."
+    }
+    elseif (Command-Exists "python") {
+        Print-Success "Python ja esta instalado."
+    }
+    else {
         Print-Info "Instalando Python via winget..."
         winget install Python.Python.3 -h
         if (Command-Exists "python") {
             Print-Success "Python instalado com sucesso."
-        } else {
+        }
+        else {
             Print-Error "Falha ao instalar Python."
             exit 1
         }
@@ -189,7 +201,8 @@ function Install-AITools {
     Print-Info "Instalando Google Gemini CLI..."
     if (!$DryRun) {
         npm install -g @google/gemini-cli
-    } else {
+    }
+    else {
         Print-Info "(dry-run) npm install -g @google/gemini-cli"
     }
     Print-Success "Google Gemini CLI instalado."
@@ -197,7 +210,8 @@ function Install-AITools {
     Print-Info "Instalando Qwen Code..."
     if (!$DryRun) {
         npm install -g @qwen-code/qwen-code
-    } else {
+    }
+    else {
         Print-Info "(dry-run) npm install -g @qwen-code/qwen-code"
     }
     Print-Success "Qwen Code instalado."
@@ -205,7 +219,8 @@ function Install-AITools {
     Print-Info "Instalando OpenAI Codex CLI..."
     if (!$DryRun) {
         npm install -g @openai/codex
-    } else {
+    }
+    else {
         Print-Info "(dry-run) npm install -g @openai/codex"
     }
     Print-Success "OpenAI Codex CLI instalado."
@@ -213,7 +228,8 @@ function Install-AITools {
     Print-Info "Instalando Mistral Vibe..."
     if (!$DryRun) {
         python -m pip install mistral-vibe
-    } else {
+    }
+    else {
         Print-Info "(dry-run) python -m pip install mistral-vibe"
     }
     Print-Success "Mistral Vibe instalado."
@@ -237,7 +253,7 @@ function Main {
     }
 
     if (-not (Confirm-Execution)) {
-        Print-Warning "Operação cancelada pelo usuário."
+        Print-Warning "Operacao cancelada pelo usuario."
         exit 0
     }
 
@@ -245,10 +261,10 @@ function Main {
 
     Install-AITools
 
-    Print-Title "INSTALAÇÃO CONCLUÍDA"
+    Print-Title "INSTALACAO CONCLUIDA"
     Print-Success "Todas as ferramentas de IA foram instaladas com sucesso!"
-    Print-Warning "Pode ser necessário reiniciar o terminal para que as alterações tenham efeito."
-    Print-Info "Para começar a usá-las, abra um novo terminal e execute:"
+    Print-Warning "Pode ser necessario reiniciar o terminal para que as alteracoes tenham efeito."
+    Print-Info "Para comecar a usa-las, abra um novo terminal e execute:"
     Print-Info "gemini, qwen, codex ou vibe"
 }
 
