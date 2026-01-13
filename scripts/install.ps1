@@ -68,8 +68,45 @@ function Confirm-Execution {
     return ($confirmation -eq 'S' -or $confirmation -eq 's')
 }
 
+# Funcao para montar plano de instalacao
+function Get-InstallPlan {
+    $plan = [ordered]@{
+        Node = $false
+        Python = $false
+        Gemini = $false
+        Qwen = $false
+        Codex = $false
+        Vibe = $false
+    }
+
+    if (-not $OnlyClis) {
+        if (-not $SkipNode -and -not (Command-Exists "node")) {
+            $plan.Node = $true
+        }
+        if (-not $SkipPython -and -not (Command-Exists "python")) {
+            $plan.Python = $true
+        }
+    }
+
+    if (-not (Command-Exists "gemini")) {
+        $plan.Gemini = $true
+    }
+    if (-not (Command-Exists "qwen")) {
+        $plan.Qwen = $true
+    }
+    if (-not (Command-Exists "codex")) {
+        $plan.Codex = $true
+    }
+    if (-not (Command-Exists "vibe")) {
+        $plan.Vibe = $true
+    }
+
+    return $plan
+}
 # Função para diagnóstico inicial
 function Show-Diagnostic {
+    param([hashtable]$Plan)
+
     Print-Title "DIAGNOSTICO INICIAL"
 
     $osInfo = [System.Environment]::OSVersion
@@ -110,31 +147,54 @@ function Show-Diagnostic {
         Print-Info "Apenas CLIs de IA (modo -OnlyClis)"
     }
     else {
-        if (!$SkipNode -and !(Command-Exists "node")) {
-            Print-Info "Node.js (porque esta ausente e -SkipNode nao foi usado)"
-        }
-        elseif ($SkipNode) {
+        if ($SkipNode) {
             Print-Info "Node.js (sera pulado por -SkipNode)"
+        }
+        elseif ($Plan.Node) {
+            Print-Info "Node.js (sera instalado)"
         }
         else {
             Print-Info "Node.js (ja esta instalado)"
         }
 
-        if (!$SkipPython -and !(Command-Exists "python")) {
-            Print-Info "Python (porque esta ausente e -SkipPython nao foi usado)"
-        }
-        elseif ($SkipPython) {
+        if ($SkipPython) {
             Print-Info "Python (sera pulado por -SkipPython)"
+        }
+        elseif ($Plan.Python) {
+            Print-Info "Python (sera instalado)"
         }
         else {
             Print-Info "Python (ja esta instalado)"
         }
     }
 
-    Print-Info "Google Gemini CLI"
-    Print-Info "Qwen Code"
-    Print-Info "OpenAI Codex CLI"
-    Print-Info "Mistral Vibe"
+    if ($Plan.Gemini) {
+        Print-Info "Google Gemini CLI (sera instalado)"
+    }
+    else {
+        Print-Info "Google Gemini CLI (ja esta instalado)"
+    }
+
+    if ($Plan.Qwen) {
+        Print-Info "Qwen Code (sera instalado)"
+    }
+    else {
+        Print-Info "Qwen Code (ja esta instalado)"
+    }
+
+    if ($Plan.Codex) {
+        Print-Info "OpenAI Codex CLI (sera instalado)"
+    }
+    else {
+        Print-Info "OpenAI Codex CLI (ja esta instalado)"
+    }
+
+    if ($Plan.Vibe) {
+        Print-Info "Mistral Vibe (sera instalado)"
+    }
+    else {
+        Print-Info "Mistral Vibe (ja esta instalado)"
+    }
 
     if ($DryRun) {
         Print-Warning "Modo -DryRun ativado. Nenhuma instalacao sera realizada."
@@ -155,11 +215,12 @@ function Command-Exists {
 
 # Instalar Node.js e Python via winget
 function Install-Prerequisites {
+    param([hashtable]$Plan)
     # Verificar se Node.js já está instalado
     if ($SkipNode) {
         Print-Info "Pulando instalacao do Node.js (-SkipNode)."
     }
-    elseif (Command-Exists "node") {
+    elseif (-not $Plan.Node) {
         Print-Success "Node.js ja esta instalado."
     }
     else {
@@ -178,7 +239,7 @@ function Install-Prerequisites {
     if ($SkipPython) {
         Print-Info "Pulando instalacao do Python (-SkipPython)."
     }
-    elseif (Command-Exists "python") {
+    elseif (-not $Plan.Python) {
         Print-Success "Python ja esta instalado."
     }
     else {
@@ -196,43 +257,65 @@ function Install-Prerequisites {
 
 # Instalar CLIs de IA
 function Install-AITools {
+    param([hashtable]$Plan)
+
     Print-Title "INSTALANDO FERRAMENTAS DE IA"
 
-    Print-Info "Instalando Google Gemini CLI..."
-    if (!$DryRun) {
-        npm install -g @google/gemini-cli
+    if ($Plan.Gemini) {
+        Print-Info "Instalando Google Gemini CLI..."
+        if (!$DryRun) {
+            npm install -g @google/gemini-cli
+        }
+        else {
+            Print-Info "(dry-run) npm install -g @google/gemini-cli"
+        }
+        Print-Success "Google Gemini CLI instalado."
     }
     else {
-        Print-Info "(dry-run) npm install -g @google/gemini-cli"
+        Print-Success "Google Gemini CLI ja esta instalado."
     }
-    Print-Success "Google Gemini CLI instalado."
 
-    Print-Info "Instalando Qwen Code..."
-    if (!$DryRun) {
-        npm install -g @qwen-code/qwen-code
+    if ($Plan.Qwen) {
+        Print-Info "Instalando Qwen Code..."
+        if (!$DryRun) {
+            npm install -g @qwen-code/qwen-code
+        }
+        else {
+            Print-Info "(dry-run) npm install -g @qwen-code/qwen-code"
+        }
+        Print-Success "Qwen Code instalado."
     }
     else {
-        Print-Info "(dry-run) npm install -g @qwen-code/qwen-code"
+        Print-Success "Qwen Code ja esta instalado."
     }
-    Print-Success "Qwen Code instalado."
 
-    Print-Info "Instalando OpenAI Codex CLI..."
-    if (!$DryRun) {
-        npm install -g @openai/codex
+    if ($Plan.Codex) {
+        Print-Info "Instalando OpenAI Codex CLI..."
+        if (!$DryRun) {
+            npm install -g @openai/codex
+        }
+        else {
+            Print-Info "(dry-run) npm install -g @openai/codex"
+        }
+        Print-Success "OpenAI Codex CLI instalado."
     }
     else {
-        Print-Info "(dry-run) npm install -g @openai/codex"
+        Print-Success "OpenAI Codex CLI ja esta instalado."
     }
-    Print-Success "OpenAI Codex CLI instalado."
 
-    Print-Info "Instalando Mistral Vibe..."
-    if (!$DryRun) {
-        python -m pip install mistral-vibe
+    if ($Plan.Vibe) {
+        Print-Info "Instalando Mistral Vibe..."
+        if (!$DryRun) {
+            python -m pip install mistral-vibe
+        }
+        else {
+            Print-Info "(dry-run) python -m pip install mistral-vibe"
+        }
+        Print-Success "Mistral Vibe instalado."
     }
     else {
-        Print-Info "(dry-run) python -m pip install mistral-vibe"
+        Print-Success "Mistral Vibe ja esta instalado."
     }
-    Print-Success "Mistral Vibe instalado."
 }
 
 # Função principal
@@ -245,10 +328,19 @@ function Main {
         $SkipPython = $true
     }
 
-    Show-Diagnostic
+    $plan = Get-InstallPlan
+    Show-Diagnostic -Plan $plan
 
     if ($DryRun) {
         Print-Info "Encerrando (modo -DryRun)."
+        exit 0
+    }
+
+    $needsInstall = $plan.Node -or $plan.Python -or $plan.Gemini -or $plan.Qwen -or $plan.Codex -or $plan.Vibe
+    if (-not $needsInstall) {
+        Print-Title "NADA A FAZER"
+        Print-Success "Tudo ja esta instalado."
+        Print-Info "Para atualizar, use o comando de upgrade no README."
         exit 0
     }
 
@@ -257,9 +349,9 @@ function Main {
         exit 0
     }
 
-    Install-Prerequisites
+    Install-Prerequisites -Plan $plan
 
-    Install-AITools
+    Install-AITools -Plan $plan
 
     Print-Title "INSTALACAO CONCLUIDA"
     Print-Success "Todas as ferramentas de IA foram instaladas com sucesso!"

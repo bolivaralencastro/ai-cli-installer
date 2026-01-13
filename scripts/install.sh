@@ -85,22 +85,46 @@ check_cli_status() {
 
     if command_exists "$cmd"; then
         local output
-        # Redireciona stderr para stdout para capturar erro se houver
-        if output=$("$cmd" $version_arg 2>&1); then
-            CLI_STATUS="installed"
-            # Tenta extrair padrao X.Y.Z
-            if [[ "$output" =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
-                CLI_VERSION_OUTPUT="v${BASH_REMATCH[1]}"
-            else
-                # Fallback, usa a primeira linha ou "unknown"
-                CLI_VERSION_OUTPUT=$(echo "$output" | head -n 1)
-            fi
-        else
-            CLI_STATUS="broken"
-            CLI_VERSION_OUTPUT="Erro na execução"
-        fi
+        case "$cmd" in
+            vibe)
+                if "$cmd" --help >/dev/null 2>&1; then
+                    CLI_STATUS="installed"
+                else
+                    CLI_STATUS="broken"
+                fi
+
+                if command_exists pip3; then
+                    output=$(pip3 show mistral-vibe 2>/dev/null | grep Version | awk '{print $2}')
+                fi
+
+                if [[ -n "$output" ]]; then
+                    CLI_VERSION_OUTPUT="v${output}"
+                elif [[ "$CLI_STATUS" == "installed" ]]; then
+                    CLI_VERSION_OUTPUT="versao nao detectada"
+                else
+                    CLI_VERSION_OUTPUT="Erro na execucao"
+                fi
+                ;;
+            *)
+                # Redireciona stderr para stdout para capturar erro se houver
+                if output=$("$cmd" $version_arg 2>&1); then
+                    CLI_STATUS="installed"
+                    # Tenta extrair padrao X.Y.Z
+                    if [[ "$output" =~ ([0-9]+\.[0-9]+\.[0-9]+) ]]; then
+                        CLI_VERSION_OUTPUT="v${BASH_REMATCH[1]}"
+                    else
+                        # Fallback, usa a primeira linha ou "unknown"
+                        CLI_VERSION_OUTPUT=$(echo "$output" | head -n 1)
+                    fi
+                else
+                    CLI_STATUS="broken"
+                    CLI_VERSION_OUTPUT="Erro na execucao"
+                fi
+                ;;
+        esac
     fi
 }
+
 
 # Selecionar comando Python preferencial
 select_python_cmd() {
