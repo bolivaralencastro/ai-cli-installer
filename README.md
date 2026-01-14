@@ -1,4 +1,64 @@
-# Instalador de Ferramentas de IA
+﻿# Instalador de Ferramentas de IA
+
+## TL;DV (passo a passo, rapido)
+
+1) Instalar
+
+macOS / Linux / WSL:
+```bash
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --yes
+```
+
+Windows PowerShell:
+```powershell
+iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.ps1 | iex
+```
+
+2) Iniciar (abrir as ferramentas)
+
+Antes, abra o terminal direto na pasta/projeto no qual voce quer trabalhar com a IA em CLI (clique com o botao direito sobre a pasta e escolha "Abrir no Terminal").
+
+Abra cada CLI em um terminal separado:
+
+```bash
+gemini
+```
+
+```bash
+qwen
+```
+
+```bash
+codex
+```
+
+```bash
+vibe
+```
+
+3) Atualizar
+
+macOS / Linux / WSL:
+```bash
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --upgrade
+```
+
+Windows PowerShell:
+```powershell
+iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.ps1 | iex -ArgumentList '-Upgrade'
+```
+
+4) Desinstalar (remove apenas as CLIs)
+
+macOS / Linux / WSL:
+```bash
+curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/uninstall.sh | bash
+```
+
+Windows PowerShell:
+```powershell
+iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/uninstall.ps1 | iex
+```
 
 Este repositório contém scripts para instalar globalmente ferramentas de inteligência artificial no seu sistema. Os scripts configuram automaticamente o ambiente necessário (Node.js e Python) e instalam as seguintes ferramentas:
 
@@ -47,72 +107,6 @@ O script suporta várias opções para controle avançado:
 - `--dry-run`: Mostra o que seria feito sem executar nada
 - `--upgrade`: Atualiza CLIs de IA já instaladas
 - `--log`: Cria log da instalação em ~/.ai-cli-installer.log
-
-### Exemplos de Uso
-
-macOS / Linux / WSL:
-
-Instalacao padrao (sem interacao):
-```bash
-curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --yes
-```
-
-Instalacao automatica sem confirmacao (equivalente ao padrao):
-```bash
-curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --yes
-```
-
-Instalacao apenas das CLIs (sem Node.js/Python):
-```bash
-curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --only-clis
-```
-
-Simular instalacao (modo dry-run):
-```bash
-curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --dry-run
-```
-
-Atualizar CLIs existentes:
-```bash
-curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --upgrade
-```
-
-Registrar instalacao em log:
-```bash
-curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --log
-```
-
-Windows PowerShell:
-
-Instalacao padrao (sem interacao):
-```powershell
-iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.ps1 | iex
-```
-
-Instalacao automatica sem confirmacao (equivalente ao padrao):
-```powershell
-iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.ps1 | iex
-```
-
-Instalacao apenas das CLIs (sem Node.js/Python):
-```powershell
-iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.ps1 | iex -ArgumentList '-OnlyClis'
-```
-
-Simular instalacao (modo dry-run):
-```powershell
-iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.ps1 | iex -ArgumentList '-DryRun'
-```
-
-Atualizar CLIs existentes:
-```powershell
-iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.ps1 | iex -ArgumentList '-Upgrade'
-```
-
-Registrar instalacao em log:
-```powershell
-iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.ps1 | iex -ArgumentList '-Log'
-```
 
 Para confirmação interativa, baixe o script e execute localmente (o prompt não funciona via pipe).
 
@@ -209,3 +203,8 @@ bash scripts/install.sh --dry-run --skip-python
 bash scripts/install.sh --dry-run --upgrade
 bash scripts/uninstall.sh --help
 ```
+
+
+
+
+
