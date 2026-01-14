@@ -50,22 +50,24 @@ O script suporta várias opções para controle avançado:
 
 ### Exemplos de Uso
 
-Instalação padrão (sem interação):
+macOS / Linux / WSL:
+
+Instalacao padrao (sem interacao):
 ```bash
 curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --yes
 ```
 
-Instalação automática sem confirmação (equivalente ao padrão):
+Instalacao automatica sem confirmacao (equivalente ao padrao):
 ```bash
 curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --yes
 ```
 
-Instalação apenas das CLIs (sem Node.js/Python):
+Instalacao apenas das CLIs (sem Node.js/Python):
 ```bash
 curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --only-clis
 ```
 
-Simular instalação (modo dry-run):
+Simular instalacao (modo dry-run):
 ```bash
 curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --dry-run
 ```
@@ -75,9 +77,41 @@ Atualizar CLIs existentes:
 curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --upgrade
 ```
 
-Registrar instalação em log:
+Registrar instalacao em log:
 ```bash
 curl -fsSL https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.sh | bash -s -- --log
+```
+
+Windows PowerShell:
+
+Instalacao padrao (sem interacao):
+```powershell
+iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.ps1 | iex
+```
+
+Instalacao automatica sem confirmacao (equivalente ao padrao):
+```powershell
+iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.ps1 | iex
+```
+
+Instalacao apenas das CLIs (sem Node.js/Python):
+```powershell
+iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.ps1 | iex -ArgumentList '-OnlyClis'
+```
+
+Simular instalacao (modo dry-run):
+```powershell
+iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.ps1 | iex -ArgumentList '-DryRun'
+```
+
+Atualizar CLIs existentes:
+```powershell
+iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.ps1 | iex -ArgumentList '-Upgrade'
+```
+
+Registrar instalacao em log:
+```powershell
+iwr -useb https://github.com/bolivaralencastro/ai-cli-installer/releases/download/v3.0.0/install.ps1 | iex -ArgumentList '-Log'
 ```
 
 Para confirmação interativa, baixe o script e execute localmente (o prompt não funciona via pipe).
